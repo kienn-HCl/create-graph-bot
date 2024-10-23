@@ -79,23 +79,24 @@ var (
 )
 
 func createGraphPng(dataFile, gnuplotFile, pngFile *os.File) error {
-	gnuplotText := `set timefmt '%H:%M:%S'
-set title 'temp, humidity, soil moisture'
+	gnuplotText := `set timefmt '%Y/%m/%d-%H:%M:%S'
+set title '温度・湿度・土壌水分'
 set xdata time
 set format x '%H:%M'
-set xlabel 'time'
-set xtics 60*15
+set xlabel '時間'
+set xtics 60*60
+set xtics rotate by 90 right
 set yrange [0:40]
-set ylabel 'temperature'
+set ylabel '温度[℃]'
 set ytics nomirror
-set y2label 'humidity and soil moisture'
+set y2label '湿度・土壌水分[%]'
 set y2range [0:100]
 set y2tics nomirror
 set my2tics 10
-set terminal png
+set terminal pngcairo
 `
 	gnuplotText += fmt.Sprintf("set output '%s'\n", pngFile.Name())
-	gnuplotText += fmt.Sprintf("plot '%s' using 1:2 axis x1y1 with line title 'temp', '%s' using 1:3 axis x1y2 with line title 'humid', '%s' using 1:4 axis x1y2 with line title 'soil'", dataFile.Name(), dataFile.Name(), dataFile.Name())
+	gnuplotText += fmt.Sprintf("plot '%s' using 1:2 axis x1y1 with line title '温度', '%s' using 1:3 axis x1y2 with line title '湿度', '%s' using 1:4 axis x1y2 with line title '土壌水分'", dataFile.Name(), dataFile.Name(), dataFile.Name())
 
 	log.Println("	gnuplotText:\n" + gnuplotText)
 
@@ -121,7 +122,7 @@ func createDataFile(messages []*discordgo.Message, dataFile *os.File) error {
 		extractedData := strings.FieldsFunc(m.Content, func(c rune) bool {
 			return c != '.' && !unicode.IsNumber(c)
 		})
-		shapedData += fmt.Sprintln(m.Timestamp.Local().Format("15:04:05"), extractedData[0], extractedData[1], extractedData[2])
+		shapedData += fmt.Sprintln(m.Timestamp.Local().Format("2006/01/02-15:04:05"), extractedData[0], extractedData[1], extractedData[2])
 	}
 	log.Println("	shapedData:\n" + shapedData)
 
@@ -132,7 +133,7 @@ func createDataFile(messages []*discordgo.Message, dataFile *os.File) error {
 }
 
 func getMessageData(s *discordgo.Session, i *discordgo.InteractionCreate) []*discordgo.Message {
-	var dataNum = 50
+	var dataNum = 100
 	var beforeID string
 	var buffer []*discordgo.Message
 
@@ -155,7 +156,8 @@ func getMessageData(s *discordgo.Session, i *discordgo.InteractionCreate) []*dis
 			buffer = append(buffer, m)
 		}
 
-		if len(buffer) == dataNum {
+		if len(buffer) >= dataNum {
+			buffer = buffer[0:dataNum]
 			break
 		}
 		beforeID = buffer[len(buffer)-1].ID
