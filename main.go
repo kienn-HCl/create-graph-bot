@@ -178,7 +178,6 @@ func main() {
 		log.Fatalln("error discordgo new: ", err)
 	}
 
-	discord.AddHandler(onMessageCreate)
 	discord.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
@@ -224,18 +223,3 @@ func main() {
 	return
 }
 
-func onMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	appID := os.Getenv("AppID")
-	u := m.Author
-	if u.ID == appID {
-		return
-	}
-	log.Println(m.ChannelID, u.Username, u.ID, m.Components)
-
-	message := u.Mention() + "test uooo!"
-	_, err := s.ChannelMessageSend(m.ChannelID, message)
-	if err != nil {
-		log.Println("error message send:", err)
-	}
-	log.Println("message : ", message)
-}
