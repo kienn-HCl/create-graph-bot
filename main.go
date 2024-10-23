@@ -97,7 +97,7 @@ set terminal png
 	gnuplotText += fmt.Sprintf("set output '%s'\n", pngFile.Name())
 	gnuplotText += fmt.Sprintf("plot '%s' using 1:2 axis x1y1 with line title 'temp', '%s' using 1:3 axis x1y2 with line title 'humid', '%s' using 1:4 axis x1y2 with line title 'soil'", dataFile.Name(), dataFile.Name(), dataFile.Name())
 
-	log.Println("gnuplotText:\n" + gnuplotText)
+	log.Println("	gnuplotText:\n" + gnuplotText)
 
 	if _, err := gnuplotFile.Write([]byte(gnuplotText)); err != nil {
 		return fmt.Errorf("error create gnuplot file:", err)
@@ -123,7 +123,7 @@ func createDataFile(messages []*discordgo.Message, dataFile *os.File) error {
 		})
 		shapedData += fmt.Sprintln(m.Timestamp.Local().Format("15:04:05"), extractedData[0], extractedData[1], extractedData[2])
 	}
-	log.Println("shapedData:\n" + shapedData)
+	log.Println("	shapedData:\n" + shapedData)
 
 	if _, err := dataFile.Write([]byte(shapedData)); err != nil {
 		return err
@@ -149,8 +149,6 @@ func getMessageData(s *discordgo.Session, i *discordgo.InteractionCreate) []*dis
 
 		// 取ってきたメッセージのうち条件を満たすものを集める
 		for _, m := range messages {
-			// println(m.Author.Username, " : ", m.Content)
-			// fmt.Printf("%#v\n", m)
 			if m.Author.Username != "aiueo" {
 				continue
 			}
@@ -167,7 +165,7 @@ func getMessageData(s *discordgo.Session, i *discordgo.InteractionCreate) []*dis
 	for _, b := range buffer {
 		messageContents += fmt.Sprintln(b.Content)
 	}
-	log.Println("get message:\n" + messageContents)
+	log.Printf("	get message(num=%s):\n%s\n", len(buffer), messageContents)
 
 	return buffer
 }
@@ -222,4 +220,3 @@ func main() {
 	log.Println("quit")
 	return
 }
-
