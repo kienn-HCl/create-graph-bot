@@ -1,12 +1,17 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+)
+
+var (
+	delCmd = flag.Bool("delcmd", false, "delete registered commands when program finish.")
 )
 
 func main() {
@@ -33,13 +38,14 @@ func main() {
 			Description: "create graph",
 		},
 		GraphHandler)
-	defer func() {
-		log.Println("removing commands...")
-		if err := commands.DeleteCommands(session); err != nil {
-			log.Fatalln("error delete commands: ", err)
-		}
-	}()
-	session.AddHandler(commands.ReturnHandler)
+	if *delCmd {
+		defer func() {
+			if err := commands.DeleteCommands(session); err != nil {
+				log.Fatalln("error delete commands: ", err)
+			}
+		}()
+	}
+	session.AddHandler(commands.ReturnHandler())
 
 	log.Println("now working...")
 

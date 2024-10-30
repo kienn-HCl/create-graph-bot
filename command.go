@@ -36,6 +36,7 @@ func (c *CommandSet) ResisterCommand(s *discordgo.Session, command *discordgo.Ap
 }
 
 func (c *CommandSet) DeleteCommands(s *discordgo.Session) error {
+	log.Println("removing commands...")
 	var errs []error
 	for name, cmd := range *c {
 		err := s.ApplicationCommandDelete(s.State.User.ID, "", cmd.ID)
