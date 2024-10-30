@@ -39,9 +39,28 @@ func main() {
 		&discordgo.ApplicationCommand{
 			Name:        "graph",
 			Description: "create graph",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "Hour",
+					Description: "The time span for plotting the graph",
+					Required:    false,
+					Choices: []*discordgo.ApplicationCommandOptionChoice{
+						{
+							Name:  "1day",
+							Value: 24,
+						},
+						{
+							Name:  "2day",
+							Value: 48,
+						},
+					},
+				},
+			},
 		},
 		GraphHandler)
 	if *delCmd {
+		log.Println("Delete commands before discord session closed.")
 		defer func() {
 			if err := commands.DeleteCommands(session); err != nil {
 				log.Fatalln("error delete commands: ", err)
