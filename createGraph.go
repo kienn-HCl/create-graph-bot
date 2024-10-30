@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -11,6 +12,24 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 )
+
+type DataElemment struct {
+	Time  time.Time
+	Items map[string]string
+}
+
+type DataSet []*DataElemment
+
+func NewDataSet() DataSet {
+	return DataSet{}
+}
+
+func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
+	*ds = append(*ds, &DataElemment{
+		time,
+		*items,
+	})
+}
 
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	log.Println("getting messages...")
@@ -25,78 +44,34 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	log.Println("shape messages...")
-	data, err := filterAndShapeMessages(messages)
-	if err != nil {
-		errorlogAndRespondToDiscord(s, i, "error shape messages.", err)
-		return
-	}
-	if 0 == len(data) {
-		errorlogAndRespondToDiscord(s, i, "filtered messages is 0.", err)
-		return
-	}
+	dataSet := filterAndShapeMessages(messages, time.Hour*24)
 
-	log.Println("creating files...")
-	files, err := createFiles("*.txt", "temps*.plt", "temps*.png", "battery*.plt", "battery*.png")
-	if err != nil {
-		errorlogAndRespondToDiscord(s, i, "error create required file.", err)
-		return
-	}
-	defer func(files map[string]*os.File) {
-		for name, file := range files {
-			if err := file.Close(); err != nil {
-				log.Println("error close file", "("+name+") :", err)
-			}
-			os.Remove(file.Name())
+	log.Println("creating graph...")
+	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
+	for title := range dataSet[0].Items {
+		png, err := createPngGraph(dataSet, title)
+		if err != nil {
+			errorlogAndRespondToDiscord(s, i, "error create graph.", err)
+			return
 		}
-	}(files)
-
-	log.Println("writing data to file...")
-	if _, err := files["*.txt"].Write([]byte(data)); err != nil {
-		errorlogAndRespondToDiscord(s, i, "error write data to file.", err)
-		return
-	}
-
-	log.Println("creating graph...")
-	err = createTempsGraphPng(files["*.txt"], files["temps*.plt"], files["temps*.png"])
-	if err != nil {
-		errorlogAndRespondToDiscord(s, i, "error create graph.", err)
-		return
-	}
-
-	log.Println("creating graph...")
-	err = createBatteryGraphPng(files["*.txt"], files["battery*.plt"], files["battery*.png"])
-	if err != nil {
-		errorlogAndRespondToDiscord(s, i, "error create graph.", err)
-		return
+		pngs = append(pngs, png)
 	}
 
 	log.Println("respond messge...")
-	err = respondPngFileToDiscord(s, i, "Create graph!", files["temps*.png"], files["battery*.png"])
+	err = respondPngsToDiscord(s, i, "Create graph!", pngs...)
 	if err != nil {
 		log.Println("error respond message :", err)
 		return
 	}
 }
 
-func createFiles(names ...string) (map[string]*os.File, error) {
-	files := make(map[string]*os.File)
-	for _, name := range names {
-		file, err := os.CreateTemp("", name)
-		if err != nil {
-			return nil, fmt.Errorf("error at %s: %w", name, err)
-		}
-		files[name] = file
-	}
-	return files, nil
-}
-
-func respondPngFileToDiscord(s *discordgo.Session, i *discordgo.InteractionCreate, content string, files ...*os.File) error {
+func respondPngsToDiscord(s *discordgo.Session, i *discordgo.InteractionCreate, content string, pngs ...io.Reader) error {
 	var respondFiles []*discordgo.File
-	for _, file := range files {
+	for i, png := range pngs {
 		respondFiles = append(respondFiles, &discordgo.File{
 			ContentType: "image/png",
-			Name:        file.Name(),
-			Reader:      file,
+			Name:        fmt.Sprintf("%s-%d.png", time.Now().String(), i),
+			Reader:      png,
 		})
 	}
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -119,83 +94,58 @@ func errorlogAndRespondToDiscord(s *discordgo.Session, i *discordgo.InteractionC
 	})
 }
 
-func createBatteryGraphPng(data, gnuplot, png *os.File) error {
-	gnuplotText := fmt.Sprintln("set timefmt '%Y/%m/%d-%H:%M:%S'")
-	gnuplotText += fmt.Sprintln("set title 'バッテリー'")
-	gnuplotText += fmt.Sprintln("set xdata time")
-	gnuplotText += fmt.Sprintln("set format x '%H:%M'")
-	gnuplotText += fmt.Sprintln("set xlabel '時間'")
-	gnuplotText += fmt.Sprintln("set xtics 60*60")
-	gnuplotText += fmt.Sprintln("set xtics rotate by 90 right")
-	gnuplotText += fmt.Sprintln("set ylabel '電圧[V]'")
-	gnuplotText += fmt.Sprintln("set yrange [0:2]")
-	gnuplotText += fmt.Sprintln("set ytics nomirror")
-	gnuplotText += fmt.Sprintln("set terminal pngcairo")
-	gnuplotText += fmt.Sprintf("set output '%s'\n", png.Name())
-	gnuplotText += fmt.Sprintf("plot '%s' using 1:5 axis x1y1 with line title 'バッテリー'", data.Name())
+func createPngGraph(dataSet DataSet, title string) (io.Reader, error) {
+	gnuplotText := fmt.Sprintln("set timefmt '%Y/%m/%d-%H:%M:%S';")
+	gnuplotText += fmt.Sprintf("set title '%s';", title)
+	gnuplotText += fmt.Sprintln("set xdata time;")
+	gnuplotText += fmt.Sprintln("set format x '%H:%M';")
+	gnuplotText += fmt.Sprintln("set xlabel '時間';")
+	gnuplotText += fmt.Sprintln("set xtics 60*60;")
+	gnuplotText += fmt.Sprintln("set xtics rotate by 90 right;")
+	gnuplotText += fmt.Sprintln("set ytics nomirror;")
+	gnuplotText += fmt.Sprintln("set terminal pngcairo;")
+	gnuplotText += fmt.Sprintf("plot '< cat -' using 1:2 axis x1y1 with line title '%s'", title)
 
 	log.Println("	gnuplotText:\n" + gnuplotText)
 
-	if _, err := gnuplot.Write([]byte(gnuplotText)); err != nil {
-		return fmt.Errorf("error write to gnuplot file: %w", err)
+	var dataText string
+	for _, dataElem := range dataSet {
+		dataText += fmt.Sprintln(dataElem.Time.Local().Format("2006/01/02-15:04:05"), dataElem.Items[title])
 	}
 
-	cmd := exec.Command("gnuplot", gnuplot.Name())
-	if stdoutAndErr, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("error exec gnuplot: %w \n command stdout and stderr is\n%s", err, string(stdoutAndErr))
+	cmd := exec.Command("gnuplot", "-e", gnuplotText)
+	cmd.Stdin = strings.NewReader(dataText)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("error exec gnuplot: %w \n command stdout and stderr is\n%s", err, string(output))
 	}
 
-	return nil
+	return bytes.NewReader(output), nil
 }
 
-func createTempsGraphPng(data, gnuplot, png *os.File) error {
-	gnuplotText := `set timefmt '%Y/%m/%d-%H:%M:%S'
-set title '温度・湿度・土壌水分'
-set xdata time
-set format x '%H:%M'
-set xlabel '時間'
-set xtics 60*60
-set xtics rotate by 90 right
-set yrange [0:40]
-set ylabel '温度[℃]'
-set ytics nomirror
-set y2label '湿度・土壌水分[%]'
-set y2range [0:100]
-set y2tics nomirror
-set my2tics 10
-set terminal pngcairo
-`
-	gnuplotText += fmt.Sprintf("set output '%s'\n", png.Name())
-	gnuplotText += fmt.Sprintf("plot '%s' using 1:2 axis x1y1 with line title '温度', '%s' using 1:3 axis x1y2 with line title '湿度', '%s' using 1:4 axis x1y2 with line title '土壌水分'", data.Name(), data.Name(), data.Name())
-
-	log.Println("	gnuplotText:\n" + gnuplotText)
-
-	if _, err := gnuplot.Write([]byte(gnuplotText)); err != nil {
-		return fmt.Errorf("error create gnuplot file: %w", err)
-	}
-
-	cmd := exec.Command("gnuplot", gnuplot.Name())
-	if stdoutAndErr, err := cmd.CombinedOutput(); err != nil {
-		log.Println(string(stdoutAndErr))
-		return fmt.Errorf("error exec gnuplot: %w", err)
-	}
-
-	return nil
-}
-
-func filterAndShapeMessages(messages []*discordgo.Message) (data string, err error) {
-	limitTime := messages[0].Timestamp.Add(-time.Hour * 24)
+func filterAndShapeMessages(messages []*discordgo.Message, period time.Duration) (dataSet DataSet) {
+	limitTime := messages[0].Timestamp.Add(-period)
 	for _, m := range messages {
 		if m.Timestamp.Before(limitTime) {
 			break
 		}
-		extracted := strings.FieldsFunc(m.Content, func(c rune) bool {
-			return c != '.' && !unicode.IsNumber(c)
-		})
-		data += fmt.Sprintln(m.Timestamp.Local().Format("2006/01/02-15:04:05"), strings.Join(extracted, " "))
+
+		items := make(map[string]string)
+		itemStrs := strings.Split(m.Content, ",")
+		for _, itemStr := range itemStrs {
+			pair := strings.Split(itemStr, ":")
+			key := strings.TrimSpace(pair[0])
+			value := strings.TrimFunc(pair[1], isNotNum)
+			items[key] = value
+		}
+		dataSet.AddDataElemment(m.Timestamp, &items)
 	}
-	log.Println("	shapedData:\n" + data)
+	log.Printf("	shapedData:\n%#v", dataSet)
 	return
+}
+
+func isNotNum(c rune) bool {
+	return c != '.' && !unicode.IsNumber(c)
 }
 
 func getNumOfTargetMessages(s *discordgo.Session, i *discordgo.InteractionCreate, num int) ([]*discordgo.Message, error) {
