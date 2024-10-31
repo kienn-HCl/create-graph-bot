@@ -81,6 +81,13 @@ func respondPngsToDiscord(s *discordgo.Session, i *discordgo.InteractionCreate, 
 			Files:   respondFiles,
 		},
 	})
+	if err != nil {
+        _, err := s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+			Content: content,
+			Files:   respondFiles,
+		})
+        log.Println(err)
+	}
 	return err
 }
 
