@@ -51,13 +51,13 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	for title := range dataSet[0].Items {
 		y_min, y_max := "", ""
 		if title == "湿度" {
-			y_min, y_max = 0, 100
+			y_min, y_max = "0", "100"
 		}
 		if title == "土壌水分" {
-			y_min, y_max = 0, 100
+			y_min, y_max = "0", "100"
 		}
 		if title == "バッテリー" {
-			y_min, y_max = 0, 2
+			y_min, y_max = "0", "2"
 		}
 		png, err := createPngGraph(dataSet, title, y_min, y_max)
 		if err != nil {
