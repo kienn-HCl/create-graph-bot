@@ -111,7 +111,7 @@ func errorlogAndRespondToDiscord(s *discordgo.Session, i *discordgo.InteractionC
 	})
 }
 
-func createPngGraph(dataSet DataSet, title string, y_min string, y_max string) (io.Reader, error) {
+func createPngGraph(dataSet DataSet, title, y_min, y_max string) (io.Reader, error) {
 	gnuplotText := fmt.Sprintln("set timefmt '%Y/%m/%d-%H:%M:%S';")
 	gnuplotText += fmt.Sprintf("set title '%s';", title)
 	gnuplotText += fmt.Sprintln("set xdata time;")
