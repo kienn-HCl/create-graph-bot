@@ -49,7 +49,7 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	log.Println("creating graph...")
 	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
 	for title := range dataSet[0].Items {
-		y_min, y_max = "", ""
+		y_min, y_max := "", ""
 		if title == "湿度" {
 			y_min, y_max = 0, 100
 		}
