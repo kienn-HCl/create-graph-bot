@@ -49,7 +49,17 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	log.Println("creating graph...")
 	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
 	for title := range dataSet[0].Items {
-		png, err := createPngGraph(dataSet, title)
+		y_min, y_max := "", ""
+		if title == "湿度" {
+			y_min, y_max = "0", "100"
+		}
+		if title == "土壌水分" {
+			y_min, y_max = "0", "100"
+		}
+		if title == "バッテリー" {
+			y_min, y_max = "0", "2"
+		}
+		png, err := createPngGraph(dataSet, title, y_min, y_max)
 		if err != nil {
 			errorlogAndRespondToDiscord(s, i, "error create graph.", err)
 			return
@@ -101,7 +111,7 @@ func errorlogAndRespondToDiscord(s *discordgo.Session, i *discordgo.InteractionC
 	})
 }
 
-func createPngGraph(dataSet DataSet, title string) (io.Reader, error) {
+func createPngGraph(dataSet DataSet, title, y_min, y_max string) (io.Reader, error) {
 	gnuplotText := fmt.Sprintln("set timefmt '%Y/%m/%d-%H:%M:%S';")
 	gnuplotText += fmt.Sprintf("set title '%s';", title)
 	gnuplotText += fmt.Sprintln("set xdata time;")
@@ -110,6 +120,7 @@ func createPngGraph(dataSet DataSet, title string) (io.Reader, error) {
 	gnuplotText += fmt.Sprintln("set xtics 60*60;")
 	gnuplotText += fmt.Sprintln("set xtics rotate by 90 right;")
 	gnuplotText += fmt.Sprintln("set ytics nomirror;")
+	gnuplotText += fmt.Sprintf("set yrange [%s:%s];", y_min, y_max)
 	gnuplotText += fmt.Sprintln("set terminal pngcairo;")
 	gnuplotText += fmt.Sprintf("plot '< cat -' using 1:2 axis x1y1 with line title '%s'", title)
 
