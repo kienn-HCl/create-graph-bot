@@ -32,8 +32,14 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 }
 
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	xrange := int64(24)
+	if options := i.ApplicationCommandData().Options; len(options) > 0 {
+		if options[0].Name == "hour" && options[0].IntValue() > 0 {
+			xrange = options[0].IntValue()
+		}
+	}
 	log.Println("getting messages...")
-	messages, err := getNumOfTargetMessages(s, i, 100)
+	messages, err := getNumOfTargetMessages(s, i, 100*int(xrange/24))
 	if err != nil {
 		errorlogAndRespondToDiscord(s, i, "error getting messages.", err)
 		return
@@ -44,7 +50,7 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	log.Println("shape messages...")
-	dataSet := filterAndShapeMessages(messages, time.Hour*24)
+	dataSet := filterAndShapeMessages(messages, time.Hour*time.Duration(xrange))
 
 	log.Println("creating graph...")
 	pngs := make([]io.Reader, 0, len(dataSet[0].Items))

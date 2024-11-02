@@ -43,10 +43,21 @@ func main() {
 	}()
 
 	commands := NewCommandSet()
+    optionMin := 1.0
 	commands.ResisterCommand(
 		session,
 		&discordgo.ApplicationCommand{
-			Name:        "graph",
+			Name: "graph",
+			Options: []*discordgo.ApplicationCommandOption{
+
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "hour",
+					Description: "x's time range",
+					MinValue:    &optionMin,
+					Required:    false,
+				},
+			},
 			Description: "create graph",
 		},
 		GraphHandler)

@@ -27,8 +27,12 @@ func NewCommandSet() CommandSet {
 
 func (c *CommandSet) ResisterCommand(s *discordgo.Session, command *discordgo.ApplicationCommand, handler func(*discordgo.Session, *discordgo.InteractionCreate)) error {
 	cmd, err := s.ApplicationCommandCreate(s.State.User.ID, "", command)
+	log.Println(cmd.ID, cmd.Name)
 	if err != nil {
 		return fmt.Errorf("error register command(%s): %w", command.Name, err)
+	}
+	if cmd == nil {
+		return fmt.Errorf("can't register command(%s)", command.Name)
 	}
 	log.Println("create cmd:", cmd.Name)
 	(*c)[cmd.Name] = NewCommandElement(cmd, handler)
@@ -39,6 +43,7 @@ func (c *CommandSet) DeleteCommands(s *discordgo.Session) error {
 	log.Println("removing commands...")
 	var errs []error
 	for name, cmd := range *c {
+		log.Println(cmd.ID, cmd.Name)
 		err := s.ApplicationCommandDelete(s.State.User.ID, "", cmd.ID)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("error delete command(%s): %w", name, err))
