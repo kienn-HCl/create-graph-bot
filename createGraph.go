@@ -48,18 +48,12 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	log.Println("creating graph...")
 	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
+	yMin, yMax := make(map[string]string), make(map[string]string)
+	yMin["湿度"], yMax["湿度"] = "0", "100"
+	yMin["土壌水分"], yMax["土壌水分"] = "0", "100"
+	yMin["バッテリー"], yMax["バッテリー"] = "0", "2"
 	for title := range dataSet[0].Items {
-		y_min, y_max := "", ""
-		if title == "湿度" {
-			y_min, y_max = "0", "100"
-		}
-		if title == "土壌水分" {
-			y_min, y_max = "0", "100"
-		}
-		if title == "バッテリー" {
-			y_min, y_max = "0", "2"
-		}
-		png, err := createPngGraph(dataSet, title, y_min, y_max)
+		png, err := createPngGraph(dataSet, title, yMin[title], yMax[title])
 		if err != nil {
 			errorlogAndRespondToDiscord(s, i, "error create graph.", err)
 			return
@@ -92,11 +86,11 @@ func respondPngsToDiscord(s *discordgo.Session, i *discordgo.InteractionCreate, 
 		},
 	})
 	if err != nil {
-        _, err := s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
+		_, err := s.FollowupMessageCreate(i.Interaction, true, &discordgo.WebhookParams{
 			Content: content,
 			Files:   respondFiles,
 		})
-        log.Println(err)
+		log.Println(err)
 	}
 	return err
 }
