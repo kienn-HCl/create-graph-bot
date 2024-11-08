@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -218,7 +219,7 @@ func getNumOfTargetMessages(s *discordgo.Session, i *discordgo.InteractionCreate
 
 func appendFilteredMessages(beAppended, beFiltered []*discordgo.Message) []*discordgo.Message {
 	for _, b := range beFiltered {
-		if !strings.HasPrefix(b.Content, "温度: ") {
+		if ok, _ := regexp.MatchString("^.*:.*,", b.Content); !ok {
 			continue
 		}
 		beAppended = append(beAppended, b)
