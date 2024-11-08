@@ -36,13 +36,13 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 var xrange int64 = 24
 
 var yMin, yMax map[string]string = map[string]string{
-	"温度":   "0",
-	"湿度":   "0",
-	"土壌水分": "0",
+	"湿度":    "0",
+	"土壌水分":  "0",
+	"バッテリー": "0",
 }, map[string]string{
-	"温度":   "100",
-	"湿度":   "100",
-	"土壌水分": "2",
+	"湿度":    "100",
+	"土壌水分":  "100",
+	"バッテリー": "2",
 }
 
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -53,7 +53,7 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 
 	log.Println("getting messages...")
-	messages, err := getNumOfTargetMessages(s, i, 100*int(xrange/24))
+	messages, err := getNumOfTargetMessages(s, i, 100*int(xrange/12))
 	if err != nil {
 		errorlogAndRespondToDiscord(s, i, "error getting messages.", err)
 		return
@@ -218,8 +218,9 @@ func getNumOfTargetMessages(s *discordgo.Session, i *discordgo.InteractionCreate
 }
 
 func appendFilteredMessages(beAppended, beFiltered []*discordgo.Message) []*discordgo.Message {
+	re, _ := regexp.Compile(`^[^:]+:\s?\d`)
 	for _, b := range beFiltered {
-		if ok, _ := regexp.MatchString("^.*:.*,", b.Content); !ok {
+		if !re.MatchString(b.Content) {
 			continue
 		}
 		beAppended = append(beAppended, b)
