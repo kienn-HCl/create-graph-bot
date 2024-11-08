@@ -31,6 +31,16 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 	})
 }
 
+var yMin, yMax map[string]string = map[string]string{
+	"温度":   "0",
+	"湿度":   "0",
+	"土壌水分": "0",
+}, map[string]string{
+	"温度":   "100",
+	"湿度":   "100",
+	"土壌水分": "2",
+}
+
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	xrange := int64(24)
 	if options := i.ApplicationCommandData().Options; len(options) > 0 {
@@ -54,10 +64,6 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	log.Println("creating graph...")
 	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
-	yMin, yMax := make(map[string]string), make(map[string]string)
-	yMin["湿度"], yMax["湿度"] = "0", "100"
-	yMin["土壌水分"], yMax["土壌水分"] = "0", "100"
-	yMin["バッテリー"], yMax["バッテリー"] = "0", "2"
 	for title := range dataSet[0].Items {
 		png, err := createPngGraph(dataSet, title, yMin[title], yMax[title])
 		if err != nil {
