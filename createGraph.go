@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -63,10 +64,11 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	log.Println("shape messages...")
 	dataSet := filterAndShapeMessages(messages, time.Hour*time.Duration(xrange))
+	titles := dataSet.extractItemKeys()
 
 	log.Println("creating graph...")
-	pngs := make([]io.Reader, 0, len(dataSet[0].Items))
-	for title := range dataSet[0].Items {
+	pngs := make([]io.Reader, 0, len(titles))
+	for _, title := range titles {
 		png, err := createPngGraph(dataSet, title, yMin[title], yMax[title])
 		if err != nil {
 			errorlogAndRespondToDiscord(s, i, "error create graph.", err)
@@ -147,6 +149,18 @@ func createPngGraph(dataSet DataSet, title, y_min, y_max string) (io.Reader, err
 	}
 
 	return bytes.NewReader(output), nil
+}
+
+func (ds DataSet) extractItemKeys() (keys []string) {
+	for _, de := range ds {
+		for key := range (*de).Items {
+			if slices.Contains(keys, key) {
+				continue
+			}
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 func filterAndShapeMessages(messages []*discordgo.Message, period time.Duration) (dataSet DataSet) {
