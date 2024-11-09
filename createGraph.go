@@ -33,8 +33,6 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 	})
 }
 
-var xrange int64 = 24
-
 var yMin, yMax map[string]string = map[string]string{
 	"湿度":    "0",
 	"土壌水分":  "0",
@@ -46,6 +44,7 @@ var yMin, yMax map[string]string = map[string]string{
 }
 
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	var xrange int64 = 24
 	if options := i.ApplicationCommandData().Options; len(options) > 0 {
 		if options[0].Name == "hour" {
 			xrange = options[0].IntValue()
