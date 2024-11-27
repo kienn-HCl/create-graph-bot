@@ -217,7 +217,7 @@ func getNumOfTargetMessages(s *discordgo.Session, i *discordgo.InteractionCreate
 }
 
 func appendFilteredMessages(beAppended, beFiltered []*discordgo.Message) []*discordgo.Message {
-	re, _ := regexp.Compile(`^[^:]+:\s?\d`)
+	re, _ := regexp.Compile(`^[^:]+:\s*-?\d`)
 	for _, b := range beFiltered {
 		if !re.MatchString(b.Content) {
 			continue
