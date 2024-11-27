@@ -35,11 +35,11 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 
 var yMin, yMax map[string]string = map[string]string{
 	"湿度":    "0",
-	"土壌水分":  "0",
+	// "土壌水分":  "0",
 	"バッテリー": "0",
 }, map[string]string{
 	"湿度":    "100",
-	"土壌水分":  "100",
+	// "土壌水分":  "100",
 	"バッテリー": "2",
 }
 
