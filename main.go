@@ -29,6 +29,13 @@ func init() {
 }
 
 func main() {
+	log.Println("setup database...")
+	db, err := setupDB("database.sqlite")
+	if err != nil {
+		log.Fatalln("error setup DB:", err)
+	}
+	defer db.Close()
+
 	session.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Printf("Logged in as: %v#%v", s.State.User.Username, s.State.User.Discriminator)
 	})
@@ -43,7 +50,7 @@ func main() {
 	}()
 
 	commands := NewCommandSet()
-    optionMin := 1.0
+	optionMin := 1.0
 	commands.ResisterCommand(
 		session,
 		&discordgo.ApplicationCommand{
