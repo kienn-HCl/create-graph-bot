@@ -43,12 +43,10 @@ var yMin, yMax map[string]string = map[string]string{
 	"バッテリー": "2",
 }
 
-var xrange int64 = 24
-
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	options := i.ApplicationCommandData().Options
 	if len(options) == 0 {
-		createGraph(s, i)
+		createGraph(s, i, 24)
 		return
 	}
 
@@ -56,16 +54,16 @@ func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	case "register":
 		registerData(s, i)
 	case "hour":
-		xrange = options[0].IntValue()
-		createGraph(s, i)
+		xrange := options[0].IntValue()
+		createGraph(s, i, xrange)
 	}
 }
 
 func registerData(s *discordgo.Session, i *discordgo.InteractionCreate) {
-    // todo
+	// todo
 }
 
-func createGraph(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func createGraph(s *discordgo.Session, i *discordgo.InteractionCreate, xrange int64) {
 	log.Println("getting messages...")
 	messages, err := getNumOfTargetMessages(s, i, 100*int(xrange/12))
 	if err != nil {
