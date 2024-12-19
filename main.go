@@ -53,6 +53,11 @@ func main() {
 			Options: []*discordgo.ApplicationCommandOption{
 
 				{
+					Name:        "register",
+					Description: "resister data in channel",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+				},
+				{
 					Type:        discordgo.ApplicationCommandOptionInteger,
 					Name:        "hour",
 					Description: "x's time range",

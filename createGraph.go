@@ -34,23 +34,38 @@ func (ds *DataSet) AddDataElemment(time time.Time, items *map[string]string) {
 }
 
 var yMin, yMax map[string]string = map[string]string{
-	"湿度":    "0",
+	"湿度": "0",
 	// "土壌水分":  "0",
 	"バッテリー": "0",
 }, map[string]string{
-	"湿度":    "100",
+	"湿度": "100",
 	// "土壌水分":  "100",
 	"バッテリー": "2",
 }
 
+var xrange int64 = 24
+
 func GraphHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	var xrange int64 = 24
-	if options := i.ApplicationCommandData().Options; len(options) > 0 {
-		if options[0].Name == "hour" {
-			xrange = options[0].IntValue()
-		}
+	options := i.ApplicationCommandData().Options
+	if len(options) == 0 {
+		createGraph(s, i)
+		return
 	}
 
+	switch options[0].Name {
+	case "register":
+		registerData(s, i)
+	case "hour":
+		xrange = options[0].IntValue()
+		createGraph(s, i)
+	}
+}
+
+func registerData(s *discordgo.Session, i *discordgo.InteractionCreate) {
+    // todo
+}
+
+func createGraph(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	log.Println("getting messages...")
 	messages, err := getNumOfTargetMessages(s, i, 100*int(xrange/12))
 	if err != nil {
